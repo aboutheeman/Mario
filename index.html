@@ -398,7 +398,7 @@
   var enemiesStart = [
     makeEnemy(1900,GROUND_Y-26,1850,1995),
     makeEnemy(2060,GROUND_Y-26,2005,2150),
-    makeEnemy(2850,GROUND_Y-26,2760,3520)
+    makeEnemy(2850,GROUND_Y-26,2760,3450)
   ];
 
   var CHECKPOINTS = [40, 700, 1900, 2750];
@@ -469,18 +469,28 @@
     doubleJump: function(){ tone(760,0.1,'square',0.06); setTimeout(function(){tone(980,0.08,'square',0.05);},40); }
   };
 
-  // ambient background arpeggio — a slow four-note drone loop, gated by muted/mode so it never
-  // plays over the start/win/lose screens or while sound is off.
-  var AMBIENT_NOTES = [98, 123.5, 146.8, 110];
+  // ambient background loop — a slow bass note plus a higher answering note a beat later,
+  // gated by muted/mode so it never plays over the start/win/lose screens or while sound is off.
+  var AMBIENT_BASS = [98, 123.5, 146.8, 110];
+  var AMBIENT_ANSWER = [293.7, 246.9, 220, 261.6];
   var ambientStep = 0;
   setInterval(function(){
     if (muted || !state || state.mode !== 'playing') return;
-    tone(AMBIENT_NOTES[ambientStep % AMBIENT_NOTES.length], 1.1, 'triangle', 0.028);
+    var i = ambientStep % AMBIENT_BASS.length;
+    tone(AMBIENT_BASS[i], 1.1, 'triangle', 0.028);
+    setTimeout(function(){
+      if (!muted && state && state.mode === 'playing') tone(AMBIENT_ANSWER[i], 0.5, 'sine', 0.02);
+    }, 700);
     ambientStep++;
   }, 1400);
 
   // ---------- input ----------
   var input = {left:false,right:false,jump:false,jumpPressed:false};
+  // Space is both the jump key and (correctly, for a focused button) a native activation key.
+  // Right after the win/lose overlay appears, the player's last reflex jump-tap would otherwise
+  // instantly re-trigger the freshly-focused Retry/Play Again button before they can read the
+  // score. Swallow just that first Space for a brief window so the result stays on screen.
+  var overlayActivationLockUntil = 0;
   window.addEventListener('keydown', function(e){
     var playing = state && state.mode === 'playing';
     if (['ArrowLeft','KeyA'].includes(e.code) && playing) input.left = true;
@@ -488,6 +498,7 @@
     if (['ArrowUp','Space','KeyZ','KeyW'].includes(e.code)){
       if (playing){ if(!input.jump) input.jumpPressed = true; input.jump = true; e.preventDefault(); }
       else if (e.code === 'ArrowUp'){ e.preventDefault(); } // avoid page scroll; leave Space/Z alone so a focused button still activates
+      else if (e.code === 'Space' && performance.now() < overlayActivationLockUntil){ e.preventDefault(); }
     }
     if (e.code === 'KeyR') restart();
   });
@@ -592,11 +603,24 @@
   var startOverlay = document.getElementById('startOverlay');
   var winOverlay = document.getElementById('winOverlay');
   var loseOverlay = document.getElementById('loseOverlay');
+  var touchpad = document.getElementById('touchpad');
   var startBtn = document.getElementById('startBtn');
   var playAgainBtn = document.getElementById('playAgainBtn');
   var retryBtn = document.getElementById('retryBtn');
+
+  // The touchpad/mute controls sit behind the overlay visually and pointer clicks already
+  // can't reach them (the overlay intercepts those), but they were still reachable by Tab —
+  // fully invisible focusable controls. `inert` removes them from focus/AT/pointer entirely
+  // while any overlay covers them.
+  function setBackgroundInert(isInert){
+    touchpad.inert = isInert;
+    muteBtn.inert = isInert;
+  }
+  setBackgroundInert(true);
+
   startBtn.addEventListener('click', function(){
     startOverlay.hidden = true; state.mode='playing';
+    setBackgroundInert(false);
     announce('Game started. Reach the flag, avoid fire serpents and pits.');
   });
   playAgainBtn.addEventListener('click', restart);
@@ -606,6 +630,7 @@
     newGame(null);
     startOverlay.hidden = true; winOverlay.hidden = true; loseOverlay.hidden = true;
     state.mode = 'playing';
+    setBackgroundInert(false);
     announce('Game restarted.');
   }
 
@@ -618,6 +643,8 @@
       var best = Math.max(getBest(), state.score); setBest(best);
       document.getElementById('loseStat').textContent = 'Score ' + state.score + ' · Best ' + best;
       loseOverlay.hidden = false;
+      setBackgroundInert(true);
+      overlayActivationLockUntil = performance.now() + 500;
       retryBtn.focus();
       announce('Out of lives. Final score ' + state.score + '.');
       snapshotState();
@@ -633,6 +660,8 @@
     var best = Math.max(getBest(), state.score); setBest(best);
     document.getElementById('winStat').textContent = 'Coins ' + state.coins + '/' + coins.length + ' · Score ' + state.score + ' · Best ' + best;
     winOverlay.hidden = false;
+    setBackgroundInert(true);
+    overlayActivationLockUntil = performance.now() + 500;
     playAgainBtn.focus();
     announce('Glade cleared! Coins ' + state.coins + ' of ' + coins.length + '. Score ' + state.score + '.');
     sfx.win();
@@ -754,8 +783,9 @@
       }
     });
 
-    // flag / win
-    if (player.x + player.w > flag.x){ winLevel(); }
+    // flag / win — a death inside the enemy loop above may already have ended the run
+    // this frame, so don't let a coincident flag-crossing overwrite that outcome.
+    if (state.mode === 'playing' && player.x + player.w > flag.x){ winLevel(); }
 
     // camera
     cam.x = Math.max(0, Math.min(LEVEL_W - LW, player.x - LW/2));
@@ -854,7 +884,7 @@
     ctx.restore();
   }
 
-  var SQUASH_DURATION = 0.22;
+  var SQUASH_DURATION = 0.34;
 
   function drawEnemy(en){
     if (!en.alive && (en.squash <= 0 || en.squash > SQUASH_DURATION)) return;
