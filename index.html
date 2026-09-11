@@ -506,6 +506,9 @@
     if (['ArrowLeft','KeyA'].includes(e.code)) input.left = false;
     if (['ArrowRight','KeyD'].includes(e.code)) input.right = false;
     if (['ArrowUp','Space','KeyZ','KeyW'].includes(e.code)) input.jump = false;
+    // a focused button's native Space activation fires its click on keyup, not keydown, so the
+    // overlay-activation lock has to be enforced here too or the first check above is a no-op.
+    if (e.code === 'Space' && performance.now() < overlayActivationLockUntil) e.preventDefault();
   });
   window.addEventListener('blur', function(){
     input.left = false; input.right = false; input.jump = false; input.jumpPressed = false;
