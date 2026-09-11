@@ -1,0 +1,55 @@
+name: Generate Game SFX
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [ claude/brave-johnson-u6tugi ]
+    paths: [ '.github/workflows/sfx-generate.yml' ]
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate cinematic trailer hybrid game SFX
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS }}
+        run: |
+          set -e
+          mkdir -p assets/sfx
+
+          names=(jump doubleJump coin stomp hurt win)
+          durations=(0.6 0.6 0.5 0.6 0.7 3.0)
+          prompts=(
+            "Cinematic trailer hybrid sound effect, short bright whoosh rising swell with a subtle metallic guitar pluck and airy braam, quick upward motion, video game jump sound"
+            "Cinematic trailer hybrid sound effect, second aerial whoosh rising higher and brighter than a normal jump, shimmering strings and a light guitar harmonic, quick uplifting burst, video game double jump sound"
+            "Cinematic trailer hybrid sound effect, bright metallic chime with a shimmering orchestral bell and quick string tremolo sparkle, short cheerful pickup sound, video game coin collect sound"
+            "Cinematic trailer hybrid sound effect, heavy deep braam impact blended with a palm-muted distorted metal guitar chug and punchy orchestral percussion, short powerful stomp impact, video game enemy defeat sound"
+            "Cinematic trailer hybrid sound effect, dark descending brass hit with a distorted guitar dip and low braam, ominous ache impact, short video game hurt sound"
+            "Cinematic trailer hybrid sound effect, triumphant fanfare with full orchestral brass and a heavy distorted guitar power chord finish, epic cinematic victory sting, video game level complete sound"
+          )
+
+          for i in "${!names[@]}"; do
+            name="${names[$i]}"
+            dur="${durations[$i]}"
+            text="${prompts[$i]}"
+            echo "Generating $name ($dur s)"
+            http_code=$(curl -sS -w "%{http_code}" -o "assets/sfx/${name}.mp3" -X POST "https://api.elevenlabs.io/v1/sound-generation" \
+              -H "xi-api-key: $ELEVENLABS_API_KEY" \
+              -H "Content-Type: application/json" \
+              -d "$(jq -n --arg text "$text" --argjson dur "$dur" '{text:$text, duration_seconds:$dur, prompt_influence:0.4}')")
+            if [ "$http_code" -ge 400 ]; then
+              echo "ElevenLabs request for $name failed with HTTP $http_code"
+              cat "assets/sfx/${name}.mp3"
+              exit 1
+            fi
+          done
+
+          ls -la assets/sfx
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: game-sfx
+          path: assets/sfx/*.mp3
+          retention-days: 3
