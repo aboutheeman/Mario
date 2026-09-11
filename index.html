@@ -15,13 +15,8 @@
     --bezel-glow:#ff8a2b;
     --ground:#170f22;
     --ground-dark:#0a0612;
-    --grass:#ff7a2b;
-    --grass-dark:#b3320a;
     --accent:#ff8a2b;
     --accent-ink:#3a1400;
-    --coral:#ff5c3d;
-    --hero-body:#7ce8ff;
-    --hero-cap:#ff8a2b;
     --text:#f3ecff;
     --text-dim:#a99bcf;
     --danger:#ff3b5c;
@@ -80,6 +75,7 @@
   }
 
   .cabinet{
+    position:relative;
     background: linear-gradient(180deg, var(--panel), #08101c);
     border: 2px solid var(--panel-edge);
     border-radius: 16px;
@@ -104,6 +100,27 @@
   .hud-icon{ width:14px; height:14px; flex:none; }
   .hud-value{ font-variant-numeric: tabular-nums; color: var(--accent); }
   .hud-lives{ display:flex; gap:5px; }
+  .mute-btn{
+    font-size:15px;
+    line-height:1;
+    background:none;
+    border:1px solid var(--panel-edge);
+    border-radius:6px;
+    color: var(--text);
+    padding:4px 7px;
+    cursor:pointer;
+  }
+  .mute-btn:hover{ background: rgba(168,85,255,.12); }
+  .mute-btn:focus-visible{ outline:2px solid var(--bezel-glow); outline-offset:2px; }
+
+  .sr-only{
+    position:absolute;
+    width:1px; height:1px;
+    overflow:hidden;
+    clip:rect(0,0,0,0);
+    white-space:nowrap;
+    margin:-1px;
+  }
 
   .viewport{
     position:relative;
@@ -123,15 +140,22 @@
 
   .overlay{
     position:absolute; inset:0;
+    z-index:5;
     display:flex; align-items:center; justify-content:center;
     flex-direction:column;
     gap:16px;
     text-align:center;
     padding:20px;
-    background: rgba(6,10,18,.72);
+    overflow-y:auto;
+    background: rgba(6,10,18,.86);
     backdrop-filter: blur(2px);
+    border-radius:16px;
   }
   .overlay[hidden]{ display:none !important; }
+  @media (max-width:480px){
+    .overlay{ gap:10px; padding:16px 14px; }
+    .overlay p{ font-size:12.5px; line-height:1.45; }
+  }
   .overlay h2{
     font-family:'Press Start 2P',monospace;
     font-size: clamp(16px,4vw,24px);
@@ -198,6 +222,8 @@
   }
   .touchpad .side{ display:flex; gap:10px; }
   .tbtn{
+    -webkit-appearance:none;
+    appearance:none;
     font-family:'Press Start 2P',monospace;
     font-size:14px;
     width:56px; height:48px;
@@ -211,15 +237,17 @@
     -webkit-user-select:none;
     touch-action:none;
     cursor:pointer;
+    margin:0;
   }
   .tbtn:active, .tbtn.pressed{
     background:#2a1c40;
     border-bottom-width:1px;
     transform: translateY(3px);
   }
+  .tbtn:focus-visible{ outline:3px solid var(--bezel-glow); outline-offset:2px; }
   .tbtn.jump{ width:88px; color: var(--accent); }
 
-  @media (min-width: 720px){
+  @media (hover:hover) and (pointer:fine){
     .touchpad{ display:none; }
   }
 
@@ -227,7 +255,7 @@
     text-align:center;
     font-family:'Manrope',sans-serif;
     font-size:11.5px;
-    color: #6e5f92;
+    color: var(--text-dim);
   }
 </style>
 </head>
@@ -254,29 +282,12 @@
       <div class="hud-group">
         <span>LIVES</span>
         <div class="hud-lives" id="livesBox"></div>
+        <button type="button" class="mute-btn" id="muteBtn" aria-pressed="false" aria-label="Mute sound">&#128266;</button>
       </div>
     </div>
 
     <div class="viewport" id="viewport">
-      <canvas id="game" aria-label="Sporeleap game canvas" role="img"></canvas>
-
-      <div class="overlay" id="startOverlay">
-        <h2>SPORELEAP</h2>
-        <p>Guide your hero across floating platforms and lava pits. Stomp the fire serpents to clear them, collect glowing embers, and reach the flag at the far end of the wastes. You can jump again in mid-air for a double jump. Falling into a pit or one too many serpent bites costs a life.</p>
-        <button class="pixel" id="startBtn">Press Start</button>
-      </div>
-
-      <div class="overlay" id="winOverlay" hidden>
-        <h2>GLADE CLEARED!</h2>
-        <p class="stat" id="winStat">Coins 0 · Score 0</p>
-        <button class="pixel" id="playAgainBtn">Play Again</button>
-      </div>
-
-      <div class="overlay" id="loseOverlay" hidden>
-        <h2>OUT OF LIVES</h2>
-        <p class="stat" id="loseStat">Score 0</p>
-        <button class="pixel" id="retryBtn">Try Again</button>
-      </div>
+      <canvas id="game" aria-label="Sporeleap game canvas — a running total of coins, score and lives is announced below the game" role="img"></canvas>
     </div>
 
     <div class="legend">
@@ -287,10 +298,30 @@
 
     <div class="touchpad" id="touchpad">
       <div class="side">
-        <div class="tbtn" id="btnLeft" aria-label="Move left">&larr;</div>
-        <div class="tbtn" id="btnRight" aria-label="Move right">&rarr;</div>
+        <button type="button" class="tbtn" id="btnLeft" aria-label="Move left">&larr;</button>
+        <button type="button" class="tbtn" id="btnRight" aria-label="Move right">&rarr;</button>
       </div>
-      <div class="tbtn jump" id="btnJump" aria-label="Jump">JUMP</div>
+      <button type="button" class="tbtn jump" id="btnJump" aria-label="Jump">JUMP</button>
+    </div>
+
+    <p id="gameStatus" class="sr-only" role="status" aria-live="polite"></p>
+
+    <div class="overlay" id="startOverlay">
+      <h2>SPORELEAP</h2>
+      <p>Guide your hero across floating platforms and lava pits. Stomp the fire serpents to clear them, collect glowing embers, and reach the flag at the far end of the wastes. Move with arrow keys (or the on-screen buttons on touch devices); jump again in mid-air for a double jump — some gaps need it. Falling into a pit or one too many serpent bites costs a life.</p>
+      <button class="pixel" id="startBtn">Press Start</button>
+    </div>
+
+    <div class="overlay" id="winOverlay" hidden>
+      <h2>GLADE CLEARED!</h2>
+      <p class="stat" id="winStat">Coins 0 · Score 0</p>
+      <button class="pixel" id="playAgainBtn">Play Again</button>
+    </div>
+
+    <div class="overlay" id="loseOverlay" hidden>
+      <h2>OUT OF LIVES</h2>
+      <p class="stat" id="loseStat">Score 0</p>
+      <button class="pixel" id="retryBtn">Try Again</button>
     </div>
   </div>
 
@@ -310,6 +341,10 @@
   var FRICTION = 2000;
   var JUMP_V = -760;
   var LEVEL_W = 3600;
+  var DOUBLE_JUMP_MULT = 0.85;
+  var STOMP_BOUNCE_MULT = 0.55;
+  var HURT_KNOCKBACK_VX = 320;
+  var HURT_KNOCKBACK_VY = -420;
 
   var canvas = document.getElementById('game');
   var ctx = canvas.getContext('2d');
@@ -322,13 +357,15 @@
     canvas.height = Math.round(rect.height * dpr);
     var scale = canvas.width / LW;
     ctx.setTransform(scale, 0, 0, scale, 0, 0);
+    skyGradient = null; // the cached gradient's stops are baked into the old device-pixel mapping
   }
+  var skyGradient = null;
   window.addEventListener('resize', resize);
 
   // ---------- level geometry ----------
   // platforms: {x,y,w,h}  (top surface is solid; player lands on y)
   var platforms = [
-    {x:0,    y:GROUND_Y, w:480,  h:80},
+    {x:0,    y:GROUND_Y, w:405,  h:80},
     {x:620,  y:GROUND_Y, w:420,  h:80},
     {x:760,  y:300,      w:110,  h:24},
     {x:1080, y:GROUND_Y, w:140,  h:80},
@@ -340,7 +377,10 @@
     {x:2560, y:280,      w:110,  h:24},
     {x:2700, y:GROUND_Y, w:900,  h:80}
   ];
-  var pits = [ {x:480,w:140}, {x:1220,w:60}, {x:1710,w:120} ]; // for background hint only
+  // ground-level gaps — kept in sync with the platform list above (each entry is the
+  // literal complement of the y:GROUND_Y platforms), so the lava glow always matches
+  // where a fall is actually lethal.
+  var pits = [ {x:405,w:215}, {x:1040,w:40}, {x:1220,w:610}, {x:2250,w:450} ];
 
   var coins = [
     {x:800,y:260,r:9},{x:840,y:260,r:9},{x:880,y:260,r:9},
@@ -356,8 +396,8 @@
     return {x:x,y:y,w:34,h:26,vx:70,minX:minX,maxX:maxX,alive:true,squash:0};
   }
   var enemiesStart = [
-    makeEnemy(1900,GROUND_Y-26,1850,2150),
-    makeEnemy(2050,GROUND_Y-26,1850,2150),
+    makeEnemy(1900,GROUND_Y-26,1850,1995),
+    makeEnemy(2060,GROUND_Y-26,2005,2150),
     makeEnemy(2850,GROUND_Y-26,2760,3520)
   ];
 
@@ -401,7 +441,11 @@
 
   // ---------- audio (tiny WebAudio blips, no assets) ----------
   var actx = null;
+  var muted = false;
+  try{ muted = localStorage.getItem('sporeleap_muted') === '1'; }catch(e){}
+
   function tone(freq, dur, type, gain){
+    if (muted) return;
     try{
       if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
       var t0 = actx.currentTime;
@@ -425,12 +469,26 @@
     doubleJump: function(){ tone(760,0.1,'square',0.06); setTimeout(function(){tone(980,0.08,'square',0.05);},40); }
   };
 
+  // ambient background arpeggio — a slow four-note drone loop, gated by muted/mode so it never
+  // plays over the start/win/lose screens or while sound is off.
+  var AMBIENT_NOTES = [98, 123.5, 146.8, 110];
+  var ambientStep = 0;
+  setInterval(function(){
+    if (muted || !state || state.mode !== 'playing') return;
+    tone(AMBIENT_NOTES[ambientStep % AMBIENT_NOTES.length], 1.1, 'triangle', 0.028);
+    ambientStep++;
+  }, 1400);
+
   // ---------- input ----------
   var input = {left:false,right:false,jump:false,jumpPressed:false};
   window.addEventListener('keydown', function(e){
-    if (['ArrowLeft','KeyA'].includes(e.code)) input.left = true;
-    if (['ArrowRight','KeyD'].includes(e.code)) input.right = true;
-    if (['ArrowUp','Space','KeyZ','KeyW'].includes(e.code)){ if(!input.jump) input.jumpPressed = true; input.jump = true; e.preventDefault(); }
+    var playing = state && state.mode === 'playing';
+    if (['ArrowLeft','KeyA'].includes(e.code) && playing) input.left = true;
+    if (['ArrowRight','KeyD'].includes(e.code) && playing) input.right = true;
+    if (['ArrowUp','Space','KeyZ','KeyW'].includes(e.code)){
+      if (playing){ if(!input.jump) input.jumpPressed = true; input.jump = true; e.preventDefault(); }
+      else if (e.code === 'ArrowUp'){ e.preventDefault(); } // avoid page scroll; leave Space/Z alone so a focused button still activates
+    }
     if (e.code === 'KeyR') restart();
   });
   window.addEventListener('keyup', function(e){
@@ -438,22 +496,51 @@
     if (['ArrowRight','KeyD'].includes(e.code)) input.right = false;
     if (['ArrowUp','Space','KeyZ','KeyW'].includes(e.code)) input.jump = false;
   });
+  window.addEventListener('blur', function(){
+    input.left = false; input.right = false; input.jump = false; input.jumpPressed = false;
+  });
 
   function bindTouch(el, onDown, onUp){
     el.addEventListener('pointerdown', function(e){ e.preventDefault(); el.classList.add('pressed'); onDown(); });
     ['pointerup','pointerleave','pointercancel'].forEach(function(ev){
       el.addEventListener(ev, function(){ el.classList.remove('pressed'); onUp(); });
     });
+    // keyboard/switch-access equivalent of a press-and-hold tap, so these buttons are usable
+    // by anyone tabbing to them, not just pointer/touch users.
+    el.addEventListener('keydown', function(e){
+      if (e.code !== 'Enter' && e.code !== 'Space') return;
+      e.preventDefault();
+      if (!el.classList.contains('pressed')){ el.classList.add('pressed'); onDown(); }
+    });
+    el.addEventListener('keyup', function(e){
+      if (e.code !== 'Enter' && e.code !== 'Space') return;
+      el.classList.remove('pressed'); onUp();
+    });
   }
   bindTouch(document.getElementById('btnLeft'), function(){input.left=true;}, function(){input.left=false;});
   bindTouch(document.getElementById('btnRight'), function(){input.right=true;}, function(){input.right=false;});
   bindTouch(document.getElementById('btnJump'), function(){ if(!input.jump) input.jumpPressed = true; input.jump=true; }, function(){input.jump=false;});
 
+  var muteBtn = document.getElementById('muteBtn');
+  function syncMuteBtn(){
+    muteBtn.textContent = muted ? '\u{1F507}' : '\u{1F50A}';
+    muteBtn.setAttribute('aria-pressed', String(muted));
+    muteBtn.setAttribute('aria-label', muted ? 'Unmute sound' : 'Mute sound');
+  }
+  syncMuteBtn();
+  muteBtn.addEventListener('click', function(){
+    muted = !muted;
+    try{ localStorage.setItem('sporeleap_muted', muted ? '1' : '0'); }catch(e){}
+    syncMuteBtn();
+  });
+
   // ---------- state ----------
   var state, player, enemies, cam;
 
+  var COYOTE_TIME = 0.12;
+
   function freshPlayer(x){
-    return {x:x, y:GROUND_Y-46, w:30, h:46, vx:0, vy:0, onGround:false, facing:1, invuln:0, anim:0, jumpsUsed:0, djFx:0};
+    return {x:x, y:GROUND_Y-46, w:30, h:46, vx:0, vy:0, onGround:false, facing:1, invuln:0, anim:0, jumpsUsed:0, djFx:0, groundGrace:0};
   }
 
   function newGame(saved){
@@ -484,8 +571,9 @@
   var coinCountEl = document.getElementById('coinCount');
   var scoreCountEl = document.getElementById('scoreCount');
   var livesBox = document.getElementById('livesBox');
+  var gameStatusEl = document.getElementById('gameStatus');
   function updateHud(){
-    coinCountEl.textContent = state.coins;
+    coinCountEl.textContent = state.coins + '/' + coins.length;
     scoreCountEl.textContent = state.score;
     livesBox.innerHTML = '';
     for (var i=0;i<state.lives;i++){
@@ -495,19 +583,30 @@
       livesBox.appendChild(s);
     }
   }
+  function announce(msg){ gameStatusEl.textContent = msg; }
+
+  function getBest(){ try{ return parseInt(localStorage.getItem('sporeleap_best')||'0',10) || 0; }catch(e){ return 0; } }
+  function setBest(v){ try{ localStorage.setItem('sporeleap_best', String(v)); }catch(e){} }
 
   // ---------- overlays ----------
   var startOverlay = document.getElementById('startOverlay');
   var winOverlay = document.getElementById('winOverlay');
   var loseOverlay = document.getElementById('loseOverlay');
-  document.getElementById('startBtn').addEventListener('click', function(){ startOverlay.hidden = true; state.mode='playing'; });
-  document.getElementById('playAgainBtn').addEventListener('click', restart);
-  document.getElementById('retryBtn').addEventListener('click', restart);
+  var startBtn = document.getElementById('startBtn');
+  var playAgainBtn = document.getElementById('playAgainBtn');
+  var retryBtn = document.getElementById('retryBtn');
+  startBtn.addEventListener('click', function(){
+    startOverlay.hidden = true; state.mode='playing';
+    announce('Game started. Reach the flag, avoid fire serpents and pits.');
+  });
+  playAgainBtn.addEventListener('click', restart);
+  retryBtn.addEventListener('click', restart);
 
   function restart(){
     newGame(null);
     startOverlay.hidden = true; winOverlay.hidden = true; loseOverlay.hidden = true;
     state.mode = 'playing';
+    announce('Game restarted.');
   }
 
   function loseLife(){
@@ -516,19 +615,26 @@
     sfx.hurt();
     if (state.lives <= 0){
       state.mode = 'lose';
-      document.getElementById('loseStat').textContent = 'Score ' + state.score;
+      var best = Math.max(getBest(), state.score); setBest(best);
+      document.getElementById('loseStat').textContent = 'Score ' + state.score + ' · Best ' + best;
       loseOverlay.hidden = false;
+      retryBtn.focus();
+      announce('Out of lives. Final score ' + state.score + '.');
       snapshotState();
       return;
     }
+    announce('Life lost. ' + state.lives + ' ' + (state.lives === 1 ? 'life' : 'lives') + ' remaining.');
     player = freshPlayer(state.checkpoint);
     player.invuln = 1.4;
   }
 
   function winLevel(){
     state.mode = 'win';
-    document.getElementById('winStat').textContent = 'Coins ' + state.coins + ' · Score ' + state.score;
+    var best = Math.max(getBest(), state.score); setBest(best);
+    document.getElementById('winStat').textContent = 'Coins ' + state.coins + '/' + coins.length + ' · Score ' + state.score + ' · Best ' + best;
     winOverlay.hidden = false;
+    playAgainBtn.focus();
+    announce('Glade cleared! Coins ' + state.coins + ' of ' + coins.length + '. Score ' + state.score + '.');
     sfx.win();
     snapshotState();
   }
@@ -547,6 +653,13 @@
           entity.y = p.y - entity.h;
           entity.vy = 0;
           entity.onGround = true;
+        } else {
+          var headPrev = prevY;
+          var headNow = entity.y;
+          if (headPrev >= p.y + p.h - 1 && headNow <= p.y + p.h && entity.vy < 0){
+            entity.y = p.y + p.h;
+            entity.vy = 0;
+          }
         }
       }
     }
@@ -569,13 +682,14 @@
     player.vx = Math.max(-maxV, Math.min(maxV, player.vx));
 
     if (input.jumpPressed){
-      if (player.onGround){
+      if (player.onGround || (player.groundGrace > 0 && player.jumpsUsed === 0)){
         player.vy = JUMP_V;
         player.onGround = false;
         player.jumpsUsed = 1;
+        player.groundGrace = 0;
         sfx.jump();
       } else if (player.jumpsUsed < 2){
-        player.vy = JUMP_V*0.85;
+        player.vy = JUMP_V*DOUBLE_JUMP_MULT;
         player.jumpsUsed++;
         player.djFx = 0.3;
         sfx.doubleJump();
@@ -583,15 +697,19 @@
     }
     input.jumpPressed = false;
 
+    var wasGround = player.onGround;
     player.vy += GRAVITY*dt;
     if (player.vy > 1400) player.vy = 1400;
+    var vyBeforeLanding = player.vy;
 
     var prevY = player.y;
     player.x += player.vx*dt;
     player.x = Math.max(0, Math.min(LEVEL_W - player.w, player.x));
     player.y += player.vy*dt;
     resolvePlatforms(player, prevY);
-    if (player.onGround) player.jumpsUsed = 0;
+    if (player.onGround){ player.jumpsUsed = 0; player.groundGrace = 0; }
+    else if (wasGround) player.groundGrace = COYOTE_TIME;
+    else if (player.groundGrace > 0) player.groundGrace -= dt;
 
     if (player.invuln > 0) player.invuln -= dt;
     if (player.djFx > 0) player.djFx -= dt;
@@ -614,19 +732,23 @@
 
     // enemies
     enemies.forEach(function(en){
-      if (!en.alive) return;
+      if (!en.alive){
+        if (en.squash > 0) en.squash += dt;
+        return;
+      }
       en.x += en.vx*dt;
       if (en.x < en.minX){ en.x = en.minX; en.vx *= -1; }
       if (en.x + en.w > en.maxX){ en.x = en.maxX - en.w; en.vx *= -1; }
       if (aabb(player, en)){
-        var stomping = (prevY + player.h) <= en.y + 10 && player.vy > 0;
+        var stomping = (prevY + player.h) <= en.y + 10 && vyBeforeLanding > 0;
         if (stomping){
-          en.alive = false; en.squash = 0.001;
-          player.vy = JUMP_V*0.55;
+          en.alive = false; en.squash = 0.0001;
+          player.vy = JUMP_V*STOMP_BOUNCE_MULT;
+          player.jumpsUsed = 0;
           state.score += 100; sfx.stomp(); updateHud();
         } else if (player.invuln <= 0){
-          player.vx = (player.x < en.x ? -1 : 1) * 320;
-          player.vy = -420;
+          player.vx = (player.x < en.x ? -1 : 1) * HURT_KNOCKBACK_VX;
+          player.vy = HURT_KNOCKBACK_VY;
           loseLife();
         }
       }
@@ -655,7 +777,7 @@
   function drawPlayer(){
     ctx.save();
     var px = player.x - cam.x, py = player.y;
-    if (player.invuln > 0 && Math.floor(player.anim*16)%2===0) ctx.globalAlpha = 0.35;
+    if (player.invuln > 0) ctx.globalAlpha = 0.55 + 0.45*Math.sin(player.anim*6);
     ctx.translate(px + player.w/2, py + player.h/2);
     ctx.scale(player.facing, 1);
     ctx.translate(-player.w/2, -player.h/2);
@@ -732,15 +854,24 @@
     ctx.restore();
   }
 
+  var SQUASH_DURATION = 0.22;
+
   function drawEnemy(en){
-    if (!en.alive) return;
+    if (!en.alive && (en.squash <= 0 || en.squash > SQUASH_DURATION)) return;
     ctx.save();
     var ex = en.x - cam.x;
     var t = performance.now()/300;
-    var wob = Math.sin(t + ex*0.05)*2;
+    var wob = en.alive ? Math.sin(t + ex*0.05)*2 : 0;
     var dir = en.vx >= 0 ? 1 : -1;
     ctx.translate(ex, en.y);
     if (dir < 0){ ctx.translate(en.w, 0); ctx.scale(-1, 1); }
+    if (!en.alive){
+      var sp = en.squash / SQUASH_DURATION;
+      ctx.globalAlpha = 1 - sp;
+      ctx.translate(en.w/2, en.h*0.75);
+      ctx.scale(1 + sp*0.6, Math.max(0.08, 1 - sp*0.9));
+      ctx.translate(-en.w/2, -en.h*0.75);
+    }
 
     // slithering body
     ctx.strokeStyle = '#6e1c2c';
@@ -1056,9 +1187,11 @@
 
   function draw(){
     ctx.clearRect(0,0,LW,LH);
-    var sky = ctx.createLinearGradient(0,0,0,LH);
-    sky.addColorStop(0,'#050214'); sky.addColorStop(0.5,'#1b0b2e'); sky.addColorStop(1,'#3a0f1f');
-    ctx.fillStyle = sky; ctx.fillRect(0,0,LW,LH);
+    if (!skyGradient){
+      skyGradient = ctx.createLinearGradient(0,0,0,LH);
+      skyGradient.addColorStop(0,'#050214'); skyGradient.addColorStop(0.5,'#1b0b2e'); skyGradient.addColorStop(1,'#3a0f1f');
+    }
+    ctx.fillStyle = skyGradient; ctx.fillRect(0,0,LW,LH);
 
     drawNebula();
     drawStars();
@@ -1090,6 +1223,7 @@
   function boot(saved){
     resize();
     newGame(saved || null);
+    startBtn.focus();
     requestAnimationFrame(function(t){ last = t; requestAnimationFrame(loop); });
   }
 
