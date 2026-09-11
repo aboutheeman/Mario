@@ -7,31 +7,31 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Manrope:wght@500;700;800&display=swap">
 <style>
   :root{
-    --sky-top:#0e1a30;
-    --sky-mid:#1c3252;
-    --sky-bottom:#3a5478;
-    --panel:#0c1523;
-    --panel-edge:#24395a;
-    --bezel-glow:#4fd8ff;
-    --ground:#3a2a1d;
-    --ground-dark:#2a1e15;
-    --grass:#4fae6d;
-    --grass-dark:#2f7a49;
-    --accent:#ffcb3d;
-    --accent-ink:#4a3300;
-    --coral:#ff6b52;
-    --hero-body:#3fd0c9;
-    --hero-cap:#ff9f45;
-    --text:#f2f7fb;
-    --text-dim:#93a9c4;
-    --danger:#ff5c5c;
+    --sky-top:#050214;
+    --sky-mid:#1b0b2e;
+    --sky-bottom:#3a0f1f;
+    --panel:#0b0614;
+    --panel-edge:#3a1f52;
+    --bezel-glow:#ff8a2b;
+    --ground:#170f22;
+    --ground-dark:#0a0612;
+    --grass:#ff7a2b;
+    --grass-dark:#b3320a;
+    --accent:#ff8a2b;
+    --accent-ink:#3a1400;
+    --coral:#ff5c3d;
+    --hero-body:#7ce8ff;
+    --hero-cap:#ff8a2b;
+    --text:#f3ecff;
+    --text-dim:#a99bcf;
+    --danger:#ff3b5c;
     color-scheme: dark;
   }
 
   *{box-sizing:border-box;}
 
   body{
-    background: radial-gradient(ellipse at 50% -10%, #1a2c48 0%, #0a1220 60%, #070c16 100%);
+    background: radial-gradient(ellipse at 50% -10%, #241b3a 0%, #0d0716 55%, #050308 100%);
     color: var(--text);
     min-height:100vh;
     padding-block: 32px;
@@ -84,7 +84,7 @@
     border: 2px solid var(--panel-edge);
     border-radius: 16px;
     padding: 14px;
-    box-shadow: 0 0 0 1px rgba(79,216,255,.06), 0 20px 60px -20px rgba(0,0,0,.7), inset 0 0 40px rgba(79,216,255,.04);
+    box-shadow: 0 0 0 1px rgba(168,85,255,.08), 0 20px 60px -20px rgba(0,0,0,.7), inset 0 0 40px rgba(168,85,255,.05);
     display:flex;
     flex-direction:column;
     gap:12px;
@@ -112,7 +112,7 @@
     border-radius:10px;
     overflow:hidden;
     border: 3px solid var(--ground-dark);
-    box-shadow: inset 0 0 0 2px rgba(79,216,255,.15), inset 0 12px 30px rgba(0,0,0,.45);
+    box-shadow: inset 0 0 0 2px rgba(168,85,255,.2), inset 0 12px 30px rgba(0,0,0,.5);
     background: linear-gradient(180deg, var(--sky-top), var(--sky-mid) 55%, var(--sky-bottom));
   }
   canvas{
@@ -162,11 +162,11 @@
     padding: 13px 22px;
     border-radius: 8px;
     cursor:pointer;
-    box-shadow: 0 4px 0 #a87d00, 0 4px 12px rgba(0,0,0,.4);
+    box-shadow: 0 4px 0 #7a2f00, 0 4px 12px rgba(0,0,0,.4);
     transition: transform .06s ease;
   }
   button.pixel:hover{ filter:brightness(1.06); }
-  button.pixel:active{ transform: translateY(3px); box-shadow: 0 1px 0 #a87d00; }
+  button.pixel:active{ transform: translateY(3px); box-shadow: 0 1px 0 #7a2f00; }
   button.pixel:focus-visible{ outline:3px solid var(--bezel-glow); outline-offset:3px; }
 
   .legend{
@@ -182,7 +182,7 @@
     font-family:'Press Start 2P',monospace;
     font-size:9px;
     color: var(--text);
-    background: #16233a;
+    background: #1a1228;
     border: 1px solid var(--panel-edge);
     border-bottom-width:2px;
     padding:4px 6px;
@@ -203,7 +203,7 @@
     width:56px; height:48px;
     display:flex; align-items:center; justify-content:center;
     color: var(--text);
-    background: #16233a;
+    background: #1a1228;
     border: 1px solid var(--panel-edge);
     border-bottom-width:4px;
     border-radius:10px;
@@ -213,7 +213,7 @@
     cursor:pointer;
   }
   .tbtn:active, .tbtn.pressed{
-    background:#20365a;
+    background:#2a1c40;
     border-bottom-width:1px;
     transform: translateY(3px);
   }
@@ -227,7 +227,7 @@
     text-align:center;
     font-family:'Manrope',sans-serif;
     font-size:11.5px;
-    color: #5c7092;
+    color: #6e5f92;
   }
 </style>
 </head>
@@ -243,7 +243,7 @@
     <div class="hud">
       <div class="hud-group">
         <div class="hud-item">
-          <svg class="hud-icon" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5" fill="#ffcb3d" stroke="#a87d00" stroke-width="1.5"/></svg>
+          <svg class="hud-icon" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5" fill="#ff8a2b" stroke="#7a2f00" stroke-width="1.5"/></svg>
           <span class="hud-value" id="coinCount">0</span>
         </div>
         <div class="hud-item">
@@ -366,6 +366,37 @@
     var best = CHECKPOINTS[0];
     for (var i=0;i<CHECKPOINTS.length;i++){ if (x >= CHECKPOINTS[i] - 60) best = CHECKPOINTS[i]; }
     return best;
+  }
+
+  // ---------- background dressing: stars, nebula, embers ----------
+  var stars = [];
+  for (var si=0; si<220; si++){
+    stars.push({
+      x: Math.random()*(LEVEL_W+400)-200,
+      y: Math.random()*(GROUND_Y-20),
+      r: Math.random()*1.4+0.35,
+      phase: Math.random()*Math.PI*2,
+      speed: 0.5+Math.random()*1.3
+    });
+  }
+
+  var nebulaBlobs = [
+    {x:400,  y:120, r:220, c:'rgba(124,58,237,0.20)'},
+    {x:1400, y:90,  r:260, c:'rgba(236,72,153,0.14)'},
+    {x:2200, y:140, r:240, c:'rgba(124,58,237,0.18)'},
+    {x:3000, y:100, r:220, c:'rgba(59,130,246,0.14)'}
+  ];
+
+  var embers = [];
+  for (var ei=0; ei<50; ei++){
+    embers.push({
+      x: Math.random()*LEVEL_W,
+      speed: 0.15+Math.random()*0.3,
+      phase: Math.random()*10,
+      sway: 10+Math.random()*18,
+      swaySpeed: 0.3+Math.random()*0.7,
+      r: 1.3+Math.random()*2.0
+    });
   }
 
   // ---------- audio (tiny WebAudio blips, no assets) ----------
@@ -620,32 +651,35 @@
     var bob = player.onGround ? Math.sin(player.anim*14)*(Math.abs(player.vx)>10?2:0) : 0;
     ctx.translate(0, bob);
     // legs
-    ctx.fillStyle = '#1c8f88';
+    ctx.fillStyle = '#1c6f8f';
     ctx.fillRect(4, 34, 8, 12);
     ctx.fillRect(18, 34, 8, 12);
     // body
-    ctx.fillStyle = '#3fd0c9';
+    ctx.fillStyle = '#7ce8ff';
     ctx.fillRect(3, 14, 24, 22);
     // belly
-    ctx.fillStyle = '#eafffb';
+    ctx.fillStyle = '#eafcff';
     ctx.fillRect(8, 20, 14, 12);
     // arms
-    ctx.fillStyle = '#2fb3ac';
+    ctx.fillStyle = '#4fc8e0';
     ctx.fillRect(0, 16, 6, 14);
     ctx.fillRect(24, 16, 6, 14);
     // head
-    ctx.fillStyle = '#eafffb';
+    ctx.fillStyle = '#eafcff';
     ctx.fillRect(6, 2, 18, 14);
     // eyes
     ctx.fillStyle = '#16324a';
     ctx.fillRect(11, 7, 3, 4);
     ctx.fillRect(18, 7, 3, 4);
-    // cap
-    ctx.fillStyle = '#ff9f45';
+    // fire crest
+    ctx.shadowColor = '#ff8a2b';
+    ctx.shadowBlur = 6;
+    ctx.fillStyle = '#ff8a2b';
     ctx.beginPath();
     ctx.ellipse(15, 2, 15, 8, 0, Math.PI, 0);
     ctx.fill();
-    ctx.fillStyle = '#ffcb3d';
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#ffbb55';
     ctx.beginPath(); ctx.arc(9,-2,2.4,0,Math.PI*2); ctx.fill();
     ctx.beginPath(); ctx.arc(21,-1,2,0,Math.PI*2); ctx.fill();
     ctx.beginPath(); ctx.arc(15,-4,2.2,0,Math.PI*2); ctx.fill();
@@ -657,10 +691,13 @@
     ctx.save();
     var ex = en.x - cam.x;
     ctx.translate(ex, en.y);
-    ctx.fillStyle = '#e8462f';
+    ctx.shadowColor = '#ff5c1f';
+    ctx.shadowBlur = 7;
+    ctx.fillStyle = '#c62a12';
     ctx.beginPath();
     ctx.ellipse(en.w/2, 10, en.w/2, 11, 0, Math.PI, 0);
     ctx.fill();
+    ctx.shadowBlur = 0;
     ctx.fillStyle = '#ffd7c9';
     ctx.fillRect(en.w/2-9, 10, 18, 10);
     ctx.fillStyle = '#fff3ea';
@@ -679,17 +716,27 @@
   function drawPlatform(p){
     var x = p.x - cam.x;
     if (x+p.w < -20 || x > LW+20) return;
-    ctx.fillStyle = '#000'; ctx.globalAlpha=0.18;
+    ctx.fillStyle = '#000'; ctx.globalAlpha=0.25;
     ctx.fillRect(x+4, p.y+p.h, p.w, 10);
     ctx.globalAlpha = 1;
-    ctx.fillStyle = '#4a3527';
+    // volcanic rock body
+    ctx.fillStyle = '#170f22';
     ctx.fillRect(x, p.y+8, p.w, p.h-8);
-    ctx.fillStyle = '#3a2a1d';
+    // glowing crack lines
+    ctx.globalAlpha = 0.22;
+    ctx.fillStyle = '#ff7a2b';
     for (var i=0;i<p.w;i+=18){ ctx.fillRect(x+i, p.y+8, 1, p.h-8); }
-    ctx.fillStyle = '#4fae6d';
-    ctx.fillRect(x, p.y, p.w, 10);
-    ctx.fillStyle = '#3f9a5c';
-    for (var j=0;j<p.w;j+=14){ ctx.fillRect(x+j+4, p.y-3, 6, 6); }
+    ctx.globalAlpha = 1;
+    // lava-lit top edge
+    ctx.fillStyle = '#ff6a1f';
+    ctx.fillRect(x, p.y, p.w, 6);
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = '#ff9a4a';
+    ctx.fillRect(x, p.y-1, p.w, 2);
+    ctx.globalAlpha = 1;
+    // ember tufts
+    ctx.fillStyle = '#ff9143';
+    for (var j=0;j<p.w;j+=14){ ctx.beginPath(); ctx.arc(x+j+7, p.y-2, 2, 0, Math.PI*2); ctx.fill(); }
   }
 
   function drawCoin(c){
@@ -698,9 +745,14 @@
     var bob = Math.sin(performance.now()/260 + c.x)*3;
     ctx.save();
     ctx.translate(x, c.y+bob);
-    ctx.fillStyle = '#ffcb3d';
+    var glow = ctx.createRadialGradient(0,0,0,0,0,c.r*2);
+    glow.addColorStop(0,'rgba(255,180,110,0.55)');
+    glow.addColorStop(1,'rgba(255,80,25,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(0,0,c.r*2,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#ff7a2b';
     ctx.beginPath(); ctx.arc(0,0,c.r,0,Math.PI*2); ctx.fill();
-    ctx.strokeStyle = '#a87d00'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.strokeStyle = '#ffd08a'; ctx.lineWidth = 2; ctx.stroke();
     ctx.fillStyle = '#fff3c9';
     ctx.beginPath(); ctx.arc(-2,-2,2.4,0,Math.PI*2); ctx.fill();
     ctx.restore();
@@ -708,38 +760,192 @@
 
   function drawFlag(){
     var x = flag.x - cam.x;
-    ctx.fillStyle = '#cbb08a';
+    var t = performance.now()/300;
+    var flick = Math.sin(t)*4;
+    ctx.save();
+    ctx.fillStyle = '#241a30';
     ctx.fillRect(x, flag.y, 5, flag.h);
-    ctx.fillStyle = '#ff6b52';
+    ctx.fillStyle = 'rgba(150,110,200,0.5)';
+    ctx.fillRect(x, flag.y, 2, flag.h);
+    var grad = ctx.createLinearGradient(x+5, flag.y+6, x+50, flag.y+20);
+    grad.addColorStop(0,'#fff2c9');
+    grad.addColorStop(0.4,'#ff8a2b');
+    grad.addColorStop(1,'#ff3b1f');
+    ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.moveTo(x+5, flag.y+6); ctx.lineTo(x+46, flag.y+16); ctx.lineTo(x+5, flag.y+26);
-    ctx.closePath(); ctx.fill();
+    ctx.moveTo(x+5, flag.y+6);
+    ctx.quadraticCurveTo(x+30+flick, flag.y+10, x+46+flick*0.6, flag.y+16);
+    ctx.quadraticCurveTo(x+30-flick, flag.y+22, x+5, flag.y+26);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
   }
 
   function drawPits(){
+    var t = performance.now()/1000;
     pits.forEach(function(pit){
       var x = pit.x - cam.x;
       if (x+pit.w < -20 || x > LW+20) return;
       var grd = ctx.createLinearGradient(0,GROUND_Y,0,LH);
-      grd.addColorStop(0,'#05070b'); grd.addColorStop(1,'#000');
+      grd.addColorStop(0,'#3a0f05'); grd.addColorStop(0.15,'#1c0703'); grd.addColorStop(1,'#020000');
       ctx.fillStyle = grd;
       ctx.fillRect(x, GROUND_Y, pit.w, LH-GROUND_Y);
+      ctx.fillStyle = 'rgba(255,110,40,0.85)';
+      ctx.fillRect(x, GROUND_Y, pit.w, 3);
+      ctx.fillStyle = 'rgba(255,150,60,0.6)';
+      for (var i=0;i<pit.w;i+=22){
+        var by = GROUND_Y + 24 + Math.sin(t*1.6 + i)*6;
+        var r = Math.max(0.5, 1.6 + Math.sin(t*2+i)*0.8);
+        ctx.beginPath(); ctx.arc(x+i+10, by, r, 0, Math.PI*2); ctx.fill();
+      }
     });
+  }
+
+  function drawStars(){
+    var t = performance.now()/1000;
+    ctx.save();
+    stars.forEach(function(s){
+      var x = s.x - cam.x*0.08;
+      if (x < -10 || x > LW+10) return;
+      var tw = 0.35 + 0.65*Math.max(0, Math.sin(t*s.speed + s.phase));
+      ctx.globalAlpha = tw;
+      ctx.fillStyle = '#f0ecff';
+      ctx.beginPath(); ctx.arc(x, s.y, s.r, 0, Math.PI*2); ctx.fill();
+    });
+    ctx.restore();
+  }
+
+  function drawNebula(){
+    ctx.save();
+    nebulaBlobs.forEach(function(b){
+      var x = b.x - cam.x*0.12;
+      if (x < -400 || x > LW+400) return;
+      var grad = ctx.createRadialGradient(x,b.y,0,x,b.y,b.r);
+      grad.addColorStop(0,b.c);
+      grad.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(x,b.y,b.r,0,Math.PI*2); ctx.fill();
+    });
+    ctx.restore();
+  }
+
+  function drawPlanet(){
+    var x = 130, y = 60;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(180,140,255,0.5)';
+    ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.ellipse(x, y, 46, 12, -0.35, 0, Math.PI*2); ctx.stroke();
+    var grad = ctx.createRadialGradient(x-10,y-10,4,x,y,30);
+    grad.addColorStop(0,'#c9b3ff'); grad.addColorStop(0.6,'#8b6fd9'); grad.addColorStop(1,'#4b3a86');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(x,y,28,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle = 'rgba(220,190,255,0.7)';
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.ellipse(x, y, 46, 12, -0.35, 0.15, Math.PI-0.15); ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawEmbers(){
+    var t = performance.now()/1000;
+    ctx.save();
+    embers.forEach(function(e){
+      var x0 = e.x - cam.x*0.55;
+      if (x0 < -40 || x0 > LW+40) return;
+      var x = x0 + Math.sin(t*e.swaySpeed + e.phase)*e.sway;
+      var cycle = 5 + e.speed*3;
+      var progress = (((t*e.speed) + e.phase) % cycle) / cycle;
+      var y = LH - progress*(LH+40);
+      var alpha = Math.sin(progress*Math.PI);
+      if (alpha <= 0) return;
+      ctx.globalAlpha = alpha*0.85;
+      var grad = ctx.createRadialGradient(x,y,0,x,y,e.r*2.4);
+      grad.addColorStop(0,'rgba(255,205,140,0.95)');
+      grad.addColorStop(1,'rgba(255,80,25,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(x,y,e.r*2.4,0,Math.PI*2); ctx.fill();
+    });
+    ctx.restore();
+  }
+
+  function drawDragon(){
+    var t = performance.now()/1000;
+    var bob = Math.sin(t*0.6)*8;
+    var dx = LW-120, dy = 110+bob;
+    var s = 1.7;
+    ctx.save();
+    ctx.translate(dx, dy);
+    ctx.scale(s, s);
+    ctx.strokeStyle = 'rgba(255,138,43,0.4)';
+    ctx.lineWidth = 1/s;
+
+    ctx.fillStyle = '#2a1640';
+    ctx.globalAlpha = 0.85;
+    ctx.beginPath();
+    ctx.moveTo(10, 6);
+    ctx.bezierCurveTo(-70,-46, -150,-10, -230,80);
+    ctx.bezierCurveTo(-160,40, -90,56, -30,40);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+
+    ctx.globalAlpha = 0.65;
+    ctx.beginPath();
+    ctx.moveTo(0, 14);
+    ctx.bezierCurveTo(-50,-10, -110,10, -170,70);
+    ctx.bezierCurveTo(-120,46, -70,54, -20,44);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+
+    ctx.globalAlpha = 0.92;
+    ctx.beginPath();
+    ctx.moveTo(20, 30);
+    ctx.bezierCurveTo(30, 6, 46, -6, 62, -2);
+    ctx.bezierCurveTo(70, 2, 66, 14, 54, 18);
+    ctx.bezierCurveTo(62, 24, 58, 34, 46, 34);
+    ctx.lineTo(20, 40);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(54, -2); ctx.lineTo(58, -16); ctx.lineTo(50, -4); ctx.closePath(); ctx.fill();
+
+    var eyeGlow = 0.5+0.5*Math.sin(t*2.2);
+    ctx.globalAlpha = 0.7+0.3*eyeGlow;
+    ctx.fillStyle = '#ff8a2b';
+    ctx.shadowColor = '#ff8a2b';
+    ctx.shadowBlur = 8;
+    ctx.beginPath(); ctx.arc(58, 4, 2.4, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+
+    var cycle = 4.2, bt = t % cycle;
+    if (bt < 1.1){
+      var bp = bt/1.1;
+      ctx.globalAlpha = Math.sin(bp*Math.PI)*0.9;
+      var grad = ctx.createLinearGradient(60,6, -120-bp*60, 120+bp*30);
+      grad.addColorStop(0,'rgba(255,230,150,0.95)');
+      grad.addColorStop(0.5,'rgba(255,120,40,0.65)');
+      grad.addColorStop(1,'rgba(255,50,20,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(62, 2);
+      ctx.quadraticCurveTo(-20, 70, -120-bp*50, 130+bp*20);
+      ctx.quadraticCurveTo(10, 90, 60, 14);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
   }
 
   function draw(){
     ctx.clearRect(0,0,LW,LH);
     var sky = ctx.createLinearGradient(0,0,0,LH);
-    sky.addColorStop(0,'#0e1a30'); sky.addColorStop(0.55,'#1c3252'); sky.addColorStop(1,'#3a5478');
+    sky.addColorStop(0,'#050214'); sky.addColorStop(0.5,'#1b0b2e'); sky.addColorStop(1,'#3a0f1f');
     ctx.fillStyle = sky; ctx.fillRect(0,0,LW,LH);
 
-    // moon
-    ctx.fillStyle = 'rgba(255,244,214,0.85)';
-    ctx.beginPath(); ctx.arc(LW-120, 70, 34, 0, Math.PI*2); ctx.fill();
+    drawNebula();
+    drawStars();
+    drawPlanet();
+    drawDragon();
 
-    drawParallaxHill(0.25, '#16273f', 360, 22, 0);
-    drawParallaxHill(0.5, '#1d3350', 390, 16, 300);
+    drawParallaxHill(0.25, '#140c1f', 360, 22, 0);
+    drawParallaxHill(0.5, '#20122f', 390, 16, 300);
 
+    drawEmbers();
     drawPits();
     platforms.forEach(drawPlatform);
     coins.forEach(drawCoin);
