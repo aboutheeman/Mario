@@ -229,6 +229,78 @@
     font-size:11.5px;
     color: #6e5f92;
   }
+
+  button.pixel-ghost{
+    font-family:'Press Start 2P',monospace;
+    font-size:10px;
+    color: var(--text);
+    background: #1a1228;
+    border: 1px solid var(--panel-edge);
+    border-bottom-width:3px;
+    padding:10px 16px;
+    border-radius:8px;
+    cursor:pointer;
+  }
+  button.pixel-ghost:hover{ color: var(--accent); }
+  button.pixel-ghost:active{ transform: translateY(2px); border-bottom-width:1px; }
+
+  .save-row{
+    display:flex;
+    gap:8px;
+    align-items:center;
+    flex-wrap:wrap;
+    justify-content:center;
+  }
+  .name-input{
+    font-family:'Manrope',sans-serif;
+    font-size:13.5px;
+    color: var(--text);
+    background:#140c22;
+    border:1px solid var(--panel-edge);
+    border-radius:7px;
+    padding:9px 11px;
+    width:170px;
+    max-width:50vw;
+  }
+  .name-input:focus-visible{ outline:2px solid var(--bezel-glow); }
+  .save-status{
+    font-family:'Manrope',sans-serif;
+    font-size:12px;
+    color: var(--text-dim);
+    min-height:1em;
+  }
+
+  .lb-table-wrap{
+    width:100%;
+    max-width:420px;
+    max-height:280px;
+    overflow-y:auto;
+    border:1px solid var(--panel-edge);
+    border-radius:10px;
+  }
+  table.lb-table{
+    width:100%;
+    border-collapse:collapse;
+    font-family:'Manrope',sans-serif;
+    font-size:13px;
+  }
+  table.lb-table th, table.lb-table td{
+    padding:8px 10px;
+    text-align:left;
+    white-space:nowrap;
+  }
+  table.lb-table th{
+    position:sticky; top:0;
+    background:#160e26;
+    color: var(--text-dim);
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+  }
+  table.lb-table td{ border-top:1px solid rgba(168,85,255,.12); }
+  table.lb-table td:nth-child(2){ overflow:hidden; text-overflow:ellipsis; max-width:120px; }
+  table.lb-table tr:first-child td{ color: var(--accent); }
+  .lb-empty{ color: var(--text-dim); text-align:center; }
 </style>
 </head>
 <body>
@@ -264,18 +336,40 @@
         <h2>SPORELEAP</h2>
         <p>Guide your hero across floating platforms and lava pits. Stomp the fire serpents to clear them, collect glowing embers, and reach the flag at the far end of the wastes. You can jump again in mid-air for a double jump. Falling into a pit or one too many serpent bites costs a life.</p>
         <button class="pixel" id="startBtn">Press Start</button>
+        <button class="pixel-ghost" id="leaderboardBtn">🏆 Leaderboard</button>
       </div>
 
       <div class="overlay" id="winOverlay" hidden>
         <h2>GLADE CLEARED!</h2>
         <p class="stat" id="winStat">Coins 0 · Score 0</p>
+        <div class="save-row">
+          <input class="name-input" id="winNameInput" maxlength="20" placeholder="Your name">
+          <button class="pixel-ghost" id="winSaveBtn">Save Score</button>
+        </div>
+        <p class="save-status" id="winSaveStatus"></p>
         <button class="pixel" id="playAgainBtn">Play Again</button>
       </div>
 
       <div class="overlay" id="loseOverlay" hidden>
         <h2>OUT OF LIVES</h2>
         <p class="stat" id="loseStat">Score 0</p>
+        <div class="save-row">
+          <input class="name-input" id="loseNameInput" maxlength="20" placeholder="Your name">
+          <button class="pixel-ghost" id="loseSaveBtn">Save Score</button>
+        </div>
+        <p class="save-status" id="loseSaveStatus"></p>
         <button class="pixel" id="retryBtn">Try Again</button>
+      </div>
+
+      <div class="overlay" id="leaderboardOverlay" hidden>
+        <h2>BEST RECORDS</h2>
+        <div class="lb-table-wrap">
+          <table class="lb-table">
+            <thead><tr><th>#</th><th>Player</th><th>Score</th><th>Date</th></tr></thead>
+            <tbody id="leaderboardBody"><tr><td colspan="4" class="lb-empty">Loading…</td></tr></tbody>
+          </table>
+        </div>
+        <button class="pixel" id="leaderboardCloseBtn">Close</button>
       </div>
     </div>
 
@@ -297,6 +391,15 @@
   <p class="credit">An original level built for this glade — no relation to any other mushroom kingdom.</p>
 </div>
 
+<script>
+  // Injected at deploy time from GitHub Actions secrets (see .github/workflows/deploy.yml).
+  // Values here are the Supabase project URL and its public "anon" key, which are
+  // safe to ship to the browser as long as Row Level Security policies restrict
+  // what the anon role can actually do on the table.
+  window.SUPABASE_URL = "__SUPABASE_URL__";
+  window.SUPABASE_ANON_KEY = "__SUPABASE_ANON_KEY__";
+</script>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 (function(){
   "use strict";
@@ -496,17 +599,99 @@
     }
   }
 
+  // ---------- leaderboard (Supabase) ----------
+  var LB_TABLE = 'leaderboard';
+  var lbClient = (window.supabase && window.SUPABASE_URL && window.SUPABASE_ANON_KEY &&
+      /^https?:\/\//.test(window.SUPABASE_URL))
+    ? window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY)
+    : null;
+
+  function lbAvailable(){ return !!lbClient; }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+  function fmtDate(iso){
+    try{ return new Date(iso).toLocaleDateString(); } catch(e){ return ''; }
+  }
+
+  function fetchLeaderboard(cb){
+    if (!lbAvailable()){ cb([]); return; }
+    lbClient.from(LB_TABLE).select('player_name,score,created_at')
+      .order('score', {ascending:false}).limit(10)
+      .then(function(res){ cb((res && res.data) || []); })
+      .catch(function(){ cb([]); });
+  }
+
+  function submitScore(name, score, cb){
+    if (!lbAvailable()){ cb(false); return; }
+    lbClient.from(LB_TABLE).insert([{player_name:name, score:score}])
+      .then(function(res){ cb(!(res && res.error)); })
+      .catch(function(){ cb(false); });
+  }
+
+  function renderLeaderboard(rows, tbody){
+    if (!rows.length){
+      tbody.innerHTML = '<tr><td colspan="4" class="lb-empty">No records yet — be the first!</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(function(r, i){
+      return '<tr><td>' + (i+1) + '</td><td>' + escapeHtml(r.player_name) +
+        '</td><td>' + r.score + '</td><td>' + fmtDate(r.created_at) + '</td></tr>';
+    }).join('');
+  }
+
+  function wireSave(inputId, btnId, statusId){
+    var input = document.getElementById(inputId);
+    var btn = document.getElementById(btnId);
+    var status = document.getElementById(statusId);
+    var savedName = null;
+    try{ savedName = localStorage.getItem('sporeleap_name'); }catch(e){}
+    if (savedName) input.value = savedName;
+    if (!lbAvailable()){ status.textContent = 'Leaderboard not configured.'; btn.disabled = true; }
+    btn.addEventListener('click', function(){
+      if (!lbAvailable()) return;
+      var name = input.value.trim();
+      if (!name){ status.textContent = 'Enter a name first.'; return; }
+      name = name.slice(0, 20);
+      btn.disabled = true; status.textContent = 'Saving…';
+      try{ localStorage.setItem('sporeleap_name', name); }catch(e){}
+      submitScore(name, state.score, function(ok){
+        btn.disabled = false;
+        status.textContent = ok ? 'Saved!' : 'Could not save — try again.';
+      });
+    });
+    return status;
+  }
+
   // ---------- overlays ----------
   var startOverlay = document.getElementById('startOverlay');
   var winOverlay = document.getElementById('winOverlay');
   var loseOverlay = document.getElementById('loseOverlay');
+  var leaderboardOverlay = document.getElementById('leaderboardOverlay');
+  var leaderboardBody = document.getElementById('leaderboardBody');
   document.getElementById('startBtn').addEventListener('click', function(){ startOverlay.hidden = true; state.mode='playing'; });
   document.getElementById('playAgainBtn').addEventListener('click', restart);
   document.getElementById('retryBtn').addEventListener('click', restart);
+  document.getElementById('leaderboardBtn').addEventListener('click', function(){
+    leaderboardOverlay.hidden = false;
+    leaderboardBody.innerHTML = '<tr><td colspan="4" class="lb-empty">Loading…</td></tr>';
+    fetchLeaderboard(function(rows){ renderLeaderboard(rows, leaderboardBody); });
+  });
+  document.getElementById('leaderboardCloseBtn').addEventListener('click', function(){ leaderboardOverlay.hidden = true; });
+
+  var winSaveStatus = wireSave('winNameInput', 'winSaveBtn', 'winSaveStatus');
+  var loseSaveStatus = wireSave('loseNameInput', 'loseSaveBtn', 'loseSaveStatus');
 
   function restart(){
     newGame(null);
     startOverlay.hidden = true; winOverlay.hidden = true; loseOverlay.hidden = true;
+    if (lbAvailable()){
+      winSaveStatus.textContent = ''; document.getElementById('winSaveBtn').disabled = false;
+      loseSaveStatus.textContent = ''; document.getElementById('loseSaveBtn').disabled = false;
+    }
     state.mode = 'playing';
   }
 
