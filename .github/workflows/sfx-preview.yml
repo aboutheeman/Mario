@@ -2,6 +2,9 @@ name: SFX Style Preview
 
 on:
   workflow_dispatch: {}
+  push:
+    branches: [ claude/brave-johnson-u6tugi ]
+    paths: [ '.github/workflows/sfx-preview.yml' ]
 
 jobs:
   generate-preview:
