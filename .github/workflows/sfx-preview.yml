@@ -1,0 +1,57 @@
+name: SFX Style Preview
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  generate-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate style preview clips
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS }}
+        run: |
+          set -e
+          mkdir -p sfx-preview
+
+          names=(
+            "01-epic-orchestral"
+            "02-dark-gothic-choir"
+            "03-power-speed-metal"
+            "04-symphonic-folk"
+            "05-cinematic-trailer-hybrid"
+            "06-neoclassical-baroque"
+          )
+          prompts=(
+            "Epic symphonic metal hit, orchestral hybrid, heavy distorted guitar power chord with full orchestra brass stab and timpani hit, cinematic epic impact, short sound effect"
+            "Dark gothic symphonic metal stinger, minor key choir chant with heavy guitar riff, dramatic ominous impact, short sound effect"
+            "Fast power metal riff burst, double bass drum, soaring violins, triumphant and energetic, short sound effect"
+            "Symphonic folk metal flourish, flute and fiddle melody over heavy guitar riff, epic folk battle hymn feel, short sound effect"
+            "Cinematic trailer hybrid hit, deep braam impact blended with distorted metal guitar and orchestral percussion, huge cinematic impact, short sound effect"
+            "Neoclassical baroque metal flourish, harpsichord arpeggio with fast shredding guitar, baroque orchestral ornamentation, short sound effect"
+          )
+
+          for i in "${!names[@]}"; do
+            name="${names[$i]}"
+            text="${prompts[$i]}"
+            echo "Generating $name"
+            http_code=$(curl -sS -w "%{http_code}" -o "sfx-preview/${name}.mp3" -X POST "https://api.elevenlabs.io/v1/sound-generation" \
+              -H "xi-api-key: $ELEVENLABS_API_KEY" \
+              -H "Content-Type: application/json" \
+              -d "$(jq -n --arg text "$text" '{text:$text, duration_seconds:6, prompt_influence:0.4}')")
+            if [ "$http_code" -ge 400 ]; then
+              echo "ElevenLabs request for $name failed with HTTP $http_code"
+              cat "sfx-preview/${name}.mp3"
+              exit 1
+            fi
+          done
+
+          ls -la sfx-preview
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sfx-style-previews
+          path: sfx-preview/*.mp3
+          retention-days: 3
