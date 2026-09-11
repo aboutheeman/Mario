@@ -416,7 +416,7 @@
       osc.start(t0); osc.stop(t0 + dur + 0.02);
     }catch(e){}
   }
-  var sfx = {
+  var sfxFallback = {
     jump: function(){ tone(520,0.12,'square',0.07); },
     coin: function(){ tone(920,0.09,'square',0.07); setTimeout(function(){tone(1300,0.09,'square',0.06);},60); },
     stomp: function(){ tone(180,0.14,'sawtooth',0.09); },
@@ -424,6 +424,25 @@
     win: function(){ [660,880,990,1320].forEach(function(f,i){ setTimeout(function(){tone(f,0.18,'square',0.07);}, i*110); }); },
     doubleJump: function(){ tone(760,0.1,'square',0.06); setTimeout(function(){tone(980,0.08,'square',0.05);},40); }
   };
+  function makeSfx(name){
+    var base = new Audio('assets/sfx/' + name + '.mp3');
+    base.preload = 'auto';
+    var failed = false;
+    base.addEventListener('error', function(){ failed = true; });
+    return function(){
+      if (failed){ sfxFallback[name](); return; }
+      try{
+        var node = base.cloneNode(true);
+        node.volume = 0.6;
+        var p = node.play();
+        if (p && p.catch) p.catch(function(){});
+      }catch(e){ sfxFallback[name](); }
+    };
+  }
+  var sfx = {};
+  ['jump','doubleJump','coin','stomp','hurt','win'].forEach(function(name){
+    sfx[name] = makeSfx(name);
+  });
 
   // ---------- input ----------
   var input = {left:false,right:false,jump:false,jumpPressed:false};
